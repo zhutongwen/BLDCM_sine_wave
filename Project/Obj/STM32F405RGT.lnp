@@ -1,0 +1,27 @@
+--cpu=Cortex-M4.fp
+".\obj\startup_stm32f40xx.o"
+".\obj\system_stm32f4xx.o"
+".\obj\misc.o"
+".\obj\stm32f4xx_rcc.o"
+".\obj\stm32f4xx_dma.o"
+".\obj\stm32f4xx_flash.o"
+".\obj\stm32f4xx_gpio.o"
+".\obj\stm32f4xx_usart.o"
+".\obj\stm32f4xx_tim.o"
+".\obj\stm32f4xx_spi.o"
+".\obj\stm32f4xx_i2c.o"
+".\obj\stm32f4xx_fsmc.o"
+".\obj\stm32f4xx_adc.o"
+"..\Libraries\arm_cortexM4lf_math.lib"
+".\obj\motor_control.o"
+".\obj\stm32f4xx_it.o"
+".\obj\main.o"
+".\obj\adc.o"
+".\obj\tim.o"
+".\obj\usart.o"
+".\obj\bsp.o"
+".\obj\mpu6500.o"
+--library_type=microlib --strict --scatter ".\Obj\STM32F405RGT.sct"
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\List\STM32F405RGT.map" -o .\Obj\STM32F405RGT.axf
