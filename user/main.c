@@ -48,8 +48,8 @@ int main(void )
 	Timer1Init();//电机A
 	Timer5Init();//霍尔A	
 
-//	Timer8Init();//电机B
-//	Timer2Init();//霍尔B
+	Timer8Init();//电机B
+	Timer2Init();//霍尔B
 		
 	NvicInit();
 
@@ -76,9 +76,6 @@ int main(void )
 				motor_b.set_speed = 0;
 				while(1);
 			}			
-//			OutData[0] = motor_b.set_speed;
-//			OutData[1] = motor_a.set_speed;			
-//			OutPutData();			
 		}
 		else if (time_flag_5ms > 1)//5ms没计算完
 		{
@@ -95,10 +92,22 @@ int main(void )
 //			OutData[1] = (s16)iwa;
 //			OutPutData();
 			
-			OutData[0] = (s16)motor_a.current_section;
-			OutData[1] = (s16)motor_a.s16_test;
-			OutData[2] = (s16)motor_a.current_speed;
-			OutData[3] = (s16)motor_a.electrical_angle;
+//			OutData[0] = (s16)motor_a.current_section;
+//			OutData[1] = (s16)motor_a.set_speed;
+//			OutData[2] = (s16)motor_a.current_speed;
+//			OutData[3] = (s16)motor_a.electrical_angle;
+//			OutPutData();
+			
+//			OutData[0] = (s16)motor_b.current_section;
+//			OutData[1] = (s16)motor_b.set_speed;
+//			OutData[2] = (s16)motor_b.current_speed;
+//			OutData[3] = (s16)motor_b.electrical_angle;
+//			OutPutData();
+			
+			OutData[0] = (s16)motor_a.set_speed ;
+			OutData[1] = (s16)motor_a.current_speed ;
+			OutData[2] = (s16)motor_b.set_speed;
+			OutData[3] = (s16)motor_b.current_speed;
 			OutPutData();
 		}		
 	}

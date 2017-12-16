@@ -24,7 +24,7 @@ extern u8  time_flag_5ms;//在定时器中断中被累加，在IMU滤波是置�
 
 
 //svpwm
-//角度范围 0--3600   单位0.1度
+//角度范围 0--3600(-3600 +7200)   单位0.1度
 //幅度范围 0--4100
 static void svpwm(char a_or_b, s16 angle, u16 range)
 {
@@ -101,7 +101,7 @@ static void svpwm(char a_or_b, s16 angle, u16 range)
 	}
 }
 
-//方波
+//方波驱动
 // a_or_b  {'a' 'b'}
 // section {0 1 2 3 4 5}
 // set_speed { -4100  +4100}
@@ -110,11 +110,11 @@ static void square_wave_drive(char a_or_b, u8 section, s16 set_speed)
 	s16 off_set = 0;
 	if(a_or_b == 'a')
 	{
-		off_set = 1500;
+		off_set = -300;
 	}
 	else if(a_or_b == 'b')
 	{
-		off_set = 300;
+		off_set = 2100;
 	}		
 	if((set_speed > 4100) || (set_speed < -4100))
 	{
@@ -173,13 +173,34 @@ static void square_wave_drive(char a_or_b, u8 section, s16 set_speed)
 
 
 
-//正玄波
+//正玄波驱动
 // a_or_b  {'a' 'b'}
 // angle 0--3600   单位0.1度
 // set_speed { -4100  +4100}
 static void sine_wave_drive(char a_or_b, s16 angle, s16 set_speed)
 {
-
+	s16 off_set = 0;
+	if(a_or_b == 'a')
+	{
+		off_set = 1200;
+	}
+	else if(a_or_b == 'b')
+	{
+		off_set = 0;
+	}		
+	if((set_speed > 4100) || (set_speed < -4100))
+	{
+		return;
+	}
+	//正转
+	if(set_speed >= 0)
+	{
+		svpwm(a_or_b, angle+off_set, set_speed);	
+	}
+	else // (set_speed < 0)  反转
+	{
+		svpwm(a_or_b, angle + 1800 +off_set, -set_speed);	
+	}
 }
 //更新转子所在的象限
 static u8 update_section(char a_or_b)
@@ -243,7 +264,34 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	if(TIM1->CNT > 4000) //计数器波峰中断
 	{		
 //		square_wave_forawrd('a', motor_a.current_section, motor_a.set_speed);
-		sine_wave_drive('a', motor_a.electrical_angle, motor_a.set_speed);
+//		sine_wave_drive('a', motor_a.electrical_angle, motor_a.set_speed);
+		if(1)//速度PI
+		{
+			static float pid =0;
+			static float p =0;
+			static float i =0;
+			
+			float ki = 1.0;
+			
+			p = 1*(motor_a.set_speed - motor_a.current_speed);
+			i += 0.0002f*(motor_a.set_speed - motor_a.current_speed);
+			
+			i = i > 1000? 		1000:i;
+			i = i < (-1000)?  	(-1000):i;
+			
+			pid = 0.74f*motor_a.set_speed + p + ki*i;
+			
+			pid = pid < -4000? 		-4000:pid;
+			pid = pid >  4000?		 4000:pid;
+			
+//			square_wave_drive('a', motor_a.current_section, pid);
+			sine_wave_drive('a', motor_a.electrical_angle, pid);
+		}
+		else
+		{
+//			square_wave_drive('a', motor_a.current_section, motor_a.set_speed);	
+			sine_wave_drive('a', motor_a.electrical_angle, motor_a.set_speed);
+		}
 		
 		if(1)//转子电角度计算
 		{
@@ -265,8 +313,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 			add_angle = motor_a.current_speed < 0?		 (600+add_angle):add_angle;
 			
 			motor_a.electrical_angle += add_angle;
-			
-			motor_a.s16_test = (s16)section_time;
 		}
 	}
 	
@@ -402,7 +448,7 @@ void TIM8_UP_TIM13_IRQHandler(void)
 {
 	if(TIM8->CNT > 4000) //计数器波峰中断
 	{		
-		if(0)//速度PI
+		if(1)//速度PI
 		{
 			static float pid =0;
 			static float p =0;
@@ -421,11 +467,34 @@ void TIM8_UP_TIM13_IRQHandler(void)
 			pid = pid < -4000? 		-4000:pid;
 			pid = pid >  4000?		 4000:pid;
 			
-			square_wave_drive('b', motor_b.current_section, pid);
+//			square_wave_drive('b', motor_b.current_section, pid);
+			sine_wave_drive('b', motor_b.electrical_angle, pid);
 		}
 		else
 		{
-			square_wave_drive('b', motor_b.current_section, motor_b.set_speed);	
+//			square_wave_drive('b', motor_b.current_section, motor_b.set_speed);	
+			sine_wave_drive('b', motor_b.electrical_angle, motor_b.set_speed);
+		}
+		if(1)//转子电角度计算
+		{
+			static float section_time = 0;
+			s16 add_angle = 0;
+			
+			motor_b.electrical_angle = 600*motor_b.current_section;
+			
+			if((++section_time) > 2000)	section_time = 0;//最大计时时间0.1s；
+			if(motor_b.is_section_chenged)
+			{
+				motor_b.is_section_chenged = 0;
+				section_time  = 0;
+			}
+			
+			add_angle = (s16)((section_time/166.67f)*((float)motor_b.current_speed));// time*speed; 单位由转每分到 0.1度每秒
+			add_angle = add_angle > 600?	 600:add_angle;
+			add_angle = add_angle < -600?	-600:add_angle;
+			add_angle = motor_b.current_speed < 0?		 (600+add_angle):add_angle;
+			
+			motor_b.electrical_angle += add_angle;
 		}		
 	}
 	
